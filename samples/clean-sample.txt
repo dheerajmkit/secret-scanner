@@ -1,0 +1,5 @@
+# Clean config sample - no secrets in this file.
+region = "us-east-1"
+log_level = "info"
+# Public endpoint, safe to commit.
+homepage = "https://example.com"

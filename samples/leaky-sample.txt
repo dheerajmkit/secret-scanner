@@ -1,0 +1,7 @@
+# EXAMPLE ONLY - every credential below is fake, for testing the scanner.
+aws_access_key_id = "AKIAIOSFODNN7EXAMPLE"
+aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY12"
+github_token = "ghp_EXAMPLE1234567890abcdefghijklmnopqrs"
+slack_token = "xoxb-123456789012-EXAMPLE-abcdefghijklmnop"
+-----BEGIN RSA PRIVATE KEY----- EXAMPLE
+api_key = "sk_test_EXAMPLE_9f8e7d6c5b4a39281706"
