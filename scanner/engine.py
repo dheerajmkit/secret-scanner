@@ -1,7 +1,14 @@
-"""Directory-walk engine: find candidate files and run detectors."""
+"""Directory-walk engine: detectors + entropy + allowlist.
+
+scan_path(path) -> list of finding dicts. The allowlist is checked
+against the raw source line (before redaction); severity overrides come
+from the active config (see scanner.config and configure()).
+"""
 import os
 
+from . import config as config_module
 from .detectors import scan_text
+from .entropy import find_high_entropy
 
 SKIP_DIRS = {".git", ".hg", ".svn", "__pycache__", ".venv", "venv",
              "node_modules", ".tox"}
@@ -11,6 +18,20 @@ SKIP_EXTENSIONS = {
     ".so", ".dylib", ".bin", ".dat", ".pyc",
 }
 MAX_FILE_SIZE = 2 * 1024 * 1024  # 2 MiB
+
+_active_config = None
+
+
+def configure(cfg=None):
+    """Install a config dict from config.default_config()/load_config()."""
+    global _active_config
+    _active_config = cfg or config_module.default_config()
+
+
+def _config():
+    if _active_config is None:
+        configure()
+    return _active_config
 
 
 def _is_binary(path):
@@ -39,8 +60,13 @@ def _iter_files(root):
             yield full
 
 
+def _allowed(cfg, raw_line):
+    return any(p.search(raw_line) for p in cfg["allowlist"])
+
+
 def scan_path(path):
     """Walk ``path`` and return a list of finding dicts."""
+    cfg = _config()
     findings = []
     for filename in _iter_files(path):
         try:
@@ -48,5 +74,13 @@ def scan_path(path):
                 text = fh.read()
         except OSError:
             continue
-        findings.extend(scan_text(filename, text))
+        raw_lines = text.splitlines()
+        candidates = scan_text(filename, text) + find_high_entropy(filename, text)
+        for f in candidates:
+            lineno = f["line"]
+            raw = raw_lines[lineno - 1] if 0 < lineno <= len(raw_lines) else ""
+            if _allowed(cfg, raw):
+                continue
+            f["severity"] = cfg["severity"].get(f["type"], f["severity"])
+            findings.append(f)
     return findings
